@@ -1,0 +1,4 @@
+matplotlib
+tk
+pyyaml
+pymodbus
