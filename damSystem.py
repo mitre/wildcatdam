@@ -1,5 +1,5 @@
 #################################################################
-### Developed by University of Arizona INSURE Group 2 2025 ###
+### Developed by University of Arizona INSURE Group 1 2025 ###
 # Dalia Castro
 # Perla Gutierrez
 # Samuel Moreno
