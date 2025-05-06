@@ -1,7 +1,7 @@
 # Wildcat Dam: Modbus Dam Simulator 
 
 A simplified simulation of a dam with Modbus process control. Designed to serve
-as a to complement MITRE Caldera for OT.
+as a complement to MITRE Caldera for OT.
 
 ![Demo](./assets/demo.gif)
 
