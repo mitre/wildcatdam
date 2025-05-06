@@ -9,7 +9,7 @@ as a complement to MITRE Caldera for OT.
 
 Wildcat Dam enhances MITRE Caldera for OT by introducing a simulated device that
 replicates control hardware and industrial process interactions. This simulator
-integrates with the [Modbus plugin](https://github.com/mitre/modbus) to offering
+integrates with the [Modbus plugin](https://github.com/mitre/modbus) to offer
 an accessible and cost-effective platform for cybersecurity testing and
 training, empowering users without requiring physical ICS hardware.
 
