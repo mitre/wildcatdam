@@ -1,22 +1,22 @@
 #################################################################
-### Developed by University of Arizona INSURE Group 1 2025 ###
+##### Developed by University of Arizona INSURE Group 1 2025 ####
 # Dalia Castro
 # Perla Gutierrez
 # Samuel Moreno
 # Ben Trout
 #################################################################
 
-import time
-import threading
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import tkinter as tk
-import yaml
 import logging
+import threading
+import time
+import tkinter as tk
 
-from pymodbus.server import StartTcpServer
-from pymodbus.datastore import ModbusSequentialDataBlock, ModbusSlaveContext, ModbusServerContext
+import matplotlib.pyplot as plt
+import yaml
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from pymodbus.datastore import ModbusSequentialDataBlock, ModbusServerContext, ModbusSlaveContext
 from pymodbus.device import ModbusDeviceIdentification
+from pymodbus.server import StartTcpServer
 
 # --- Logging Setup ---
 logging.basicConfig()
@@ -26,9 +26,13 @@ log.setLevel(logging.INFO)
 # --- Constant Vars ---
 config = yaml.safe_load(open("config.yaml"))
 
-# --- Load Config (Now MODBus) ---
-# The purpose of this function is to fetch the modbus state into more easlity digestible variables.
+
+# --- Load Config (Now MODBUS) ---
 def fetch_modbus_config():
+    """
+    Fetch the MODBUS state and load it into easily digestible variables.
+    Updates global variables for thresholds, close level, and reduction rates.
+    """
     global THRESHOLD_1, THRESHOLD_2, THRESHOLD_3, CLOSE_LEVEL, reduction_rates
 
     # Fetch thresholds and close_level from holding registers
@@ -43,12 +47,22 @@ def fetch_modbus_config():
         "door_3": context[0x00].getValues(3, 3, count=1)[0],  # Holding register 4
     }
 
+
 # --- Shared Context ---
 context = None  # Will be initialized in start_server()
 
+
 # --- Datastore Setup (LOADING MODBUS VALUES)---
-# This function initializes all of the modbus configuration from the YAML. 
 def build_datastore(config):
+    """
+    Initialize the MODBUS datastore from the YAML configuration file.
+
+    Args:
+        config (dict): Configuration dictionary loaded from YAML.
+
+    Returns:
+        ModbusSlaveContext: MODBUS slave context with initialized data blocks.
+    """
     dev = config["device"]
     co = [0] * dev["setup"]["co size"]
     di = [0] * dev["setup"]["di size"]
@@ -71,10 +85,13 @@ def build_datastore(config):
         ir=ModbusSequentialDataBlock(0, ir),
     )
 
-# --- Start MODBus Server ---
-# This function starts the modbus server and logs the state of the values. 
-# You can comment out the logging if you want.
+
+# --- Start MODBUS Server ---
 def start_server():
+    """
+    Start the MODBUS server and log the state of the values.
+    Includes logging for read and write operations on the MODBUS context.
+    """
     global context
     datastore = build_datastore(config)
     context = ModbusServerContext(slaves=datastore, single=True)
@@ -106,6 +123,7 @@ def start_server():
     log.info(f"Starting MODBUS Server on {host}:{port}")
     StartTcpServer(context, identity=identity, address=(host, port))
 
+
 # --- State Tracking for Logic ---
 water_levels, cumulative_release, door_1_status, door_2_status, door_3_status = [], [], [], [], []
 cumulative_water_released = 0
@@ -113,12 +131,21 @@ cumulative_water_released = 0
 # Maintain previous door state globally or within a class/module
 previous_d1_state = [0]  # Using a list so it’s mutable in nested scopes
 
-# This is all of the door logic. First door and override status is fetched from modbus and then all of the logic is executed to determine door state.
+
 def control_doors(water_level):
+    """
+    Execute door control logic based on water level and manual override states.
+
+    Args:
+        water_level (int): Current water level.
+
+    Returns:
+        tuple: States of door 1, door 2, and door 3.
+    """
     # Manual override states
-    override_d1 = context[0x00].getValues(1, 3, count=1)[0] # Coil 3: override enable for door_1
-    override_d2 = context[0x00].getValues(1, 4, count=1)[0] # Coil 4
-    override_d3 = context[0x00].getValues(1, 5, count=1)[0] # Coil 5
+    override_d1 = context[0x00].getValues(1, 3, count=1)[0]  # Coil 3: override enable for door_1
+    override_d2 = context[0x00].getValues(1, 4, count=1)[0]  # Coil 4
+    override_d3 = context[0x00].getValues(1, 5, count=1)[0]  # Coil 5
 
     # Manual positions
     manual_d1 = context[0x00].getValues(1, 0, count=1)[0]
@@ -155,21 +182,44 @@ def control_doors(water_level):
 
     return d1, d2, d3
 
-# This calculates how much water should be released.
-# NOTE: Released water is relative to total water to simulate water pressure from gravity.
+
 def reduce_water_level(water_level, d1, d2, d3, surge_rate):
+    """
+    Calculate the amount of water to be released based on door states and surge rate.
+    NOTE: Released water is relative to total water to simulate water pressure from gravity.
+
+    Args:
+        water_level (int): Current water level.
+        d1 (int): State of door 1.
+        d2 (int): State of door 2.
+        d3 (int): State of door 3.
+        surge_rate (int): Surge rate percentage.
+
+    Returns:
+        int: Updated water level after reduction.
+    """
     global cumulative_water_released
     reduction = 0
-    if d1: reduction += water_level * (reduction_rates["door_1"] / 100)
-    if d2: reduction += water_level * (reduction_rates["door_2"] / 100)
-    if d3: reduction += water_level * (reduction_rates["door_3"] / 100)
+    if d1:
+        reduction += water_level * (reduction_rates["door_1"] / 100)
+    if d2:
+        reduction += water_level * (reduction_rates["door_2"] / 100)
+    if d3:
+        reduction += water_level * (reduction_rates["door_3"] / 100)
 
     cumulative_water_released += reduction
     return min(100, max(0, water_level - reduction + surge_rate))
 
+
 # --- Graph Updater ---
-# This executes all of the logic to execute the graphs.
 def update_graphs(canvas, axes):
+    """
+    Update the graphs to reflect the current state of the simulation.
+
+    Args:
+        canvas (FigureCanvasTkAgg): Canvas for rendering graphs.
+        axes (list): List of matplotlib axes for plotting.
+    """
     global cumulative_water_released
     while context is None:
         time.sleep(0.5)
@@ -178,7 +228,7 @@ def update_graphs(canvas, axes):
         try:
             # Fetch from MODBUS
             water_level = context[0x00].getValues(4, 0, count=1)[0]  # Input register 0
-            surge_pct = context[0x00].getValues(4, 1, count=1)[0]    # Input register 1
+            surge_pct = context[0x00].getValues(4, 1, count=1)[0]  # Input register 1
 
             # Fetch dynamic configuration
             fetch_modbus_config()
@@ -219,9 +269,12 @@ def update_graphs(canvas, axes):
             log.warning(f"Graph update error: {e}")
             time.sleep(1)
 
+
 # --- GUI ---
-# This initialize the GUI that pops up.
 def launch_gui():
+    """
+    Initialize and launch the GUI for the dam MODBUS simulation.
+    """
     root = tk.Tk()
     root.title("Dam Modbus Simulation")
     root.geometry("1000x800")
@@ -236,6 +289,7 @@ def launch_gui():
 
     threading.Thread(target=update_graphs, args=(canvas, axes), daemon=True).start()
     root.mainloop()
+
 
 # --- Run ---
 if __name__ == "__main__":
