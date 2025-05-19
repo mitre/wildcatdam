@@ -37,7 +37,7 @@ pip install -r requirements.txt
 ```
 3. Start the process:
 ``` bash
-python3 damSystem.py 
+python3 dam_system.py 
 ```
 
 ## Usage
@@ -46,7 +46,7 @@ Follow the steps below to interact with the Wildcat Dam control system using Cal
 
 ### Step 1: Start the Process
 ```bash
-python3 damSystem.py 
+python3 dam_system.py 
 ```
 Ensure the simulator is properly set up and running. If the system does not start, ensure the [dependencies](#dependencies) and [requirements](#installation) have been installed.
 
