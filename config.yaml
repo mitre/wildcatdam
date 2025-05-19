@@ -1,0 +1,44 @@
+server:
+  comm: tcp
+  host: "0.0.0.0"
+  port: 5020
+  framer: socket
+  identity:
+    VendorName: "CalderaSimDevice"
+    ProductCode: "MODBUS-SIM"
+    ProductName: "MODBUS Simulated Device"
+    ModelName: "SimDev-02"
+    MajorMinorRevision: "1.1"
+
+device:
+  setup:
+    # This defines a max of 10 of each type of input/output, increase if needed
+    co size: 10
+    di size: 10
+    hr size: 10
+    ir size: 10
+    shared blocks: true
+    type exception: false
+  coils:  # Read/Write binary
+    - { addr: 1, value: 0 }  # door_1.position (manual value)
+    - { addr: 2, value: 0 }  # door_2.position (manual value)
+    - { addr: 3, value: 0 }  # door_3.position (manual value)
+
+    - { addr: 4, value: 0 }  # door_1.override_enable (0 = auto, 1 = manual)
+    - { addr: 5, value: 0 }  # door_2.override_enable
+    - { addr: 6, value: 0 }  # door_3.override_enable
+  discrete_inputs: # Read only binary
+    - { addr: 1, value: 0 }  # Check if any water is being let out
+  holding_registers: # Read/Write
+    - { addr: 1, value: 40 }  # close_level for door 1 (0-100)
+    
+    - { addr: 2, value: 1 }   # reduction_rates.door_1 (0-10)
+    - { addr: 3, value: 3 }   # reduction_rates.door_2 (0-10)
+    - { addr: 4, value: 6 }   # reduction_rates.door_3 (0-10)
+
+    - { addr: 5, value: 60 }  # thresholds.threshold_1 (0-100)
+    - { addr: 6, value: 75 }  # thresholds.threshold_2 (0-100)
+    - { addr: 7, value: 85 }  # thresholds.threshold_3 (0-100)
+  input_registers: # Read only
+    - { addr: 1, value: 10 }  # Water Level (0-100)
+    - { addr: 2, value: 3 }  # Surge [flow of water into the dam] (1-5)
