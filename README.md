@@ -96,12 +96,6 @@ University of Arizona INSuRE Team 1
 
 In Collaboration with MITRE Caldera for OT - ot@mitre.org
 
-
-## Version History
-
-* 1.0
-    * Initial Release
-
 ## License
 
 This project is licensed under the Apache-2.0 License - see the LICENSE.md file for details
