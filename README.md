@@ -17,8 +17,9 @@ training, empowering users without requiring physical ICS hardware.
 
 ### Dependencies
 
-* Python3 (tested with Python 3.10.12)
-* Should work on any OS (tested on Ubuntu 22.04 LTS)
+* Python3 (tested with Python 3.10.12 and 3.12.3)
+  * Requires the tkinter package ([Installation - TKDocs](https://tkdocs.com/tutorial/install.html))
+* Should work on any OS (tested on Ubuntu 22.04 LTS and 24.04 LTS)
 * Caldera with the Modbus plugin to interact with the system (*optional but highly recommended*) 
   * [Caldera installation instructions](https://github.com/mitre/caldera?tab=readme-ov-file#requirements)
   * [Modbus plugin installation instructions](https://github.com/mitre/modbus?tab=readme-ov-file#installation)
