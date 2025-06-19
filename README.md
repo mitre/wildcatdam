@@ -93,7 +93,7 @@ Use the abilities provided by the Modbus plugin to send commands to the Wildcat 
   fact source with the provided checkbox.
 - Execute the ability and wait for the command output.
 
-**Example Ability Sequence**
+**Example Abilities:**
 - **Set the doors to manual control**: Use the "Write Multiple Coils" ability
   and select the following facts from the Wildcat Dam Fact Source:
   - modbus.server.ip: 127.0.0.1
@@ -118,7 +118,7 @@ Use the abilities provided by the Modbus plugin to send commands to the Wildcat 
 available abilities and their expected behavior. Experiment with different
 commands to fully explore the capabilities of the Modbus protocol.
 
-### Step 5: Monitor and Analyze
+### Step 6: Monitor and Analyze
 Try running Wireshark while executing abilities to capture the network traffic
 sent between Caldera and Wildcat Dam. Test different abilities and different
 fact values to investigate how the raw network traffic changes.
