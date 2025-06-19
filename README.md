@@ -42,15 +42,28 @@ python3 dam_system.py
 
 ## Usage
 
-Follow the steps below to interact with the Wildcat Dam control system using Caldera and the Modbus plugin:
+Follow the steps below to interact with the Wildcat Dam control system using
+Caldera and the Modbus plugin:
 
 ### Step 1: Start the Process
 ```bash
 python3 dam_system.py 
 ```
-Ensure the simulator is properly set up and running. If the system does not start, ensure the [dependencies](#dependencies) and [requirements](#installation) have been installed.
+Ensure the simulator is properly set up and running. If the system does not
+start, ensure the [dependencies](#dependencies) and
+[requirements](#installation) have been installed.
 
-### Step 2: Start Caldera
+### Step 2: Add the Wildcat Dam Fact Source
+```bash
+cp caldera/wildcat_dam_facts.yml path/to/caldera/data/sources
+```
+Copy the Wildcat Dam Fact Source (`caldera/wildcat_dam_facts.yml`) into your
+Caldera server's sources directory (`caldera/data/sources`). This ensures the 
+fact source will be upload on server startup, making the facts available for 
+use in operations.
+
+
+### Step 3: Start Caldera
 ```bash
 python3 server.py
 ```
@@ -61,23 +74,49 @@ commands.
 
 **Tip**: If the Modbus plugin is not already installed, refer to the [plugin documentation](https://github.com/mitre/modbus?tab=readme-ov-file#installation) for instructions on how to install and activate the plugin.
 
-### Step 3: Create a New Operation
-From the Caldera web GUI, navigate to the Operations page. Create a new operation to begin interacting with Wildcat Dam.
+### Step 4: Create a New Operation
+From the Caldera web GUI, navigate to the Operations page. Create a new
+operation to begin interacting with Wildcat Dam.
 
 **Recommended Settings**:  
 - Assign a meaningful name to the operation (e.g., "Wildcat Dam Control Test").
-- Leave the Fact Source as "basic" (check back soon for a Wildcat Dam fact source).
+- Select the "Wildcat Dam Facts" Fact Source (uploaded in Step 2)
 - Keep all other settings in their defaults.
 
-### Step 4: Execute Modbus Abilities
+### Step 5: Execute Modbus Abilities
 Use the abilities provided by the Modbus plugin to send commands to the Wildcat Dam control system. These abilities allow you to simulate various control actions, such as opening or closing gates, adjusting gate setpoints, or querying system status.
 
 **How to Execute Abilities:**
 - Within your operation, select "Add potential link." In the popup window, search for "modbus" to locate the Modbus plugin abilities.
 - Select the desired ability (e.g., "Read Input Registers").
-- Fill in the necessary facts to match the values set in `config.yaml`.
+- Fill in the necessary facts, either manually or by selecting a value from the 
+  fact source with the provided checkbox.
 - Execute the ability and wait for the command output.
-Pro Tip: Review the Modbus plugin documentation for a detailed list of available abilities and their expected behavior. Experiment with different commands to fully explore the capabilities of the Modbus protocol.
+
+**Example Ability Sequence**
+- **Set the doors to manual control**: Use the "Write Multiple Coils" ability
+  and select the following facts from the Wildcat Dam Fact Source:
+  - modbus.server.ip: 127.0.0.1
+  - modbus.server.port: 5020
+  - modbus.write_coil.start: 3
+  - modbus.write_coil.values: ON,ON,ON
+- **Shut all doors**: After setting manual control, use the "Write Multiple
+  Coils" ability and with the following facts:
+  - modbus.server.ip: 127.0.0.1
+  - modbus.server.port: 5020
+  - modbus.write_coil.start: 0
+  - modbus.write_coil.values: OFF,OFF,OFF
+- **Change the automatic operation thresholds**: Use the "Write Multiple
+  Registers" ability and with the following facts:
+  - modbus.server.ip: 127.0.0.1
+  - modbus.server.port: 5020
+  - modbus.write_register.start: 4
+  - modbus.write_register.values: 20,30,40
+ 
+
+**Tip**: Review the Modbus plugin documentation for a detailed list of
+available abilities and their expected behavior. Experiment with different
+commands to fully explore the capabilities of the Modbus protocol.
 
 ### Step 5: Monitor and Analyze
 Try running Wireshark while executing abilities to capture the network traffic

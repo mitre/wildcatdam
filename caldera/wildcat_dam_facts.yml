@@ -1,0 +1,41 @@
+id: 7c9a21ca-3546-47ab-8e9e-b6bd43e884b0
+name: Wildcat Dam Facts
+facts:
+- trait: modbus.server.ip
+  value: 127.0.0.1
+- trait: modbus.server.port
+  value: 5020
+- trait: modbus.read_coil.start
+  value: 0
+- trait: modbus.read_coil.count
+  value: 6
+- trait: modbus.read_discrete.start
+  value: 0
+- trait: modbus.read_discrete.count
+  value: 1
+- trait: modbus.read_holding.start
+  value: 0
+- trait: modbus.read_holding.count
+  value: 7
+- trait: modbus.read_input.start
+  value: 0
+- trait: modbus.read_input.count
+  value: 2
+- trait: modbus.write_register.start
+  value: 4
+- trait: modbus.write_register.values
+  value: 20,30,40
+- trait: modbus.write_coil.start
+  value: 3
+- trait: modbus.write_coil.start
+  value: 0
+- trait: modbus.write_coil.value
+  value: 'ON'
+- trait: modbus.write_coil.value
+  value: 'OFF'
+- trait: modbus.write_coil.values
+  value: ON,ON,ON
+- trait: modbus.write_coil.values
+  value: OFF,OFF,OFF
+rules: []
+relationships: []
