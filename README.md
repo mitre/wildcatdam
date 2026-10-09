@@ -3,7 +3,7 @@
 A simplified simulation of a dam with Modbus process control. Designed to serve
 as a complement to MITRE Caldera for OT.
 
-![Demo](./assets/demo.gif)
+![Demo](./docs/images/demo.gif)
 *Using Caldera to set the doors to manual override, then opening all three doors*
 
 ## Description
@@ -56,9 +56,9 @@ start, ensure the [dependencies](#dependencies) and
 
 ### Step 2: Add the Wildcat Dam Fact Source
 ```bash
-cp caldera/wildcat_dam_facts.yml path/to/caldera/data/sources
+cp docs/sources/wildcat-dam-simulator-facts.yml path/to/caldera/data/sources
 ```
-Copy the Wildcat Dam Fact Source (`caldera/wildcat_dam_facts.yml`) into your
+Copy the Wildcat Dam Fact Source (`docs/sources/wildcat-dam-simulator-facts.yml`) into your
 Caldera server's sources directory (`caldera/data/sources`). This ensures the 
 fact source will be upload on server startup, making the facts available for 
 use in operations.

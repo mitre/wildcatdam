@@ -6,6 +6,7 @@
 # Ben Trout
 #################################################################
 
+import argparse
 import logging
 import threading
 import time
@@ -291,7 +292,46 @@ def launch_gui():
     root.mainloop()
 
 
+# --- Headless loop (added entry point; same tick as update_graphs, no GUI) ---
+def run_headless():
+    global cumulative_water_released
+    while context is None:
+        time.sleep(0.5)
+
+    while True:
+        try:
+            # Fetch from MODBUS
+            water_level = context[0x00].getValues(4, 0, count=1)[0]  # Input register 0
+            surge_pct = context[0x00].getValues(4, 1, count=1)[0]  # Input register 1
+
+            # Fetch dynamic configuration
+            fetch_modbus_config()
+
+            # Control & update
+            d1, d2, d3 = control_doors(water_level)
+            water_level = reduce_water_level(water_level, d1, d2, d3, surge_pct)
+            context[0x00].setValues(4, 0, [int(water_level)])
+
+            # Track state
+            water_levels.append(water_level)
+            cumulative_release.append(cumulative_water_released)
+
+            time.sleep(1)
+
+        except Exception as e:
+            log.warning(f"Simulation error: {e}")
+            time.sleep(1)
+
+
 # --- Run ---
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Wildcat Dam Modbus simulation")
+    parser.add_argument("--no-gui", action="store_true", help="Run headless, without the GUI (for containers)")
+    args = parser.parse_args()
+
     threading.Thread(target=start_server, daemon=True).start()
-    launch_gui()
+
+    if args.no_gui:
+        run_headless()
+    else:
+        launch_gui()
