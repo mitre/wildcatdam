@@ -136,12 +136,18 @@ University of Arizona INSuRE Team 1
 
 In Collaboration with MITRE Caldera for OT - ot@mitre.org
 
+Wildcat Dam is intended to grow open source collaboration in OT. We encourage forks
+and pull requests with improvements, new features, deployment notes, documentation,
+and tests.
+
 ## License
 
-This project is licensed under the Apache-2.0 License - see the LICENSE.md file for details
+This project is licensed under the Apache-2.0 License - see the LICENSE file for details
 
 ## Acknowledgments
 
 * [MITRE Caldera](https://github.com/mitre/caldera)
 * [Caldera for OT](https://github.com/mitre/caldera-ot)
 * [Pymodbus](https://pymodbus.readthedocs.io/en/latest/)
+
+© 2026 The MITRE Corporation. Approved for Public Release; Distribution Unlimited. Case Number 25-01272-2.
