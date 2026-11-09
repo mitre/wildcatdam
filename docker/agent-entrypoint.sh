@@ -20,7 +20,7 @@ done
 echo "[agent] Caldera server is reachable."
 
 echo "[agent] Downloading Sandcat agent ..."
-curl -s -X POST \
+curl -sf -X POST \
     -H "platform:linux" \
     -H "file:sandcat.go" \
     -H "server:${CALDERA_SERVER}" \
@@ -28,6 +28,10 @@ curl -s -X POST \
     "${CALDERA_SERVER}/file/download" \
     -o /tmp/sandcat
 
+if [ ! -s /tmp/sandcat ]; then
+    echo "[agent] Sandcat download failed"
+    exit 1
+fi
 chmod +x /tmp/sandcat
 
 echo "[agent] Starting Sandcat agent (server=${CALDERA_SERVER}, group=${AGENT_GROUP}) ..."

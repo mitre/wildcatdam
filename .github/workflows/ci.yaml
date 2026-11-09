@@ -1,0 +1,27 @@
+name: Docker
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build and start the containers
+        run: docker compose -f docker/docker-compose.yml up --build -d
+      - name: Run smoke test
+        run: bash docker/smoke-test.sh
+      - name: Show logs
+        if: failure()
+        run: docker compose -f docker/docker-compose.yml logs
+      - name: Tear down
+        if: always()
+        run: docker compose -f docker/docker-compose.yml down -v

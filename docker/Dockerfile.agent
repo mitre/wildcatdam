@@ -1,10 +1,7 @@
-FROM debian:12-slim
+FROM ubuntu:24.04
 
-# debian, not alpine: the modbus plugin ships modbus_cli as a glibc-linked
-# x86_64 ELF (PyInstaller build). musl/Alpine has no /lib64/ld-linux-x86-64.so.2,
-# so it can't run under Rosetta on Apple Silicon Docker hosts either.
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl bash ca-certificates && \
+    apt-get install -y --no-install-recommends curl bash && \
     rm -rf /var/lib/apt/lists/*
 
 COPY docker/agent-entrypoint.sh /entrypoint.sh

@@ -1,12 +1,16 @@
+name: wildcatdam
+
 services:
   sim:
     build:
       context: ..
       dockerfile: docker/Dockerfile
+    init: true
     networks:
       - ot-lab
     ports:
       - "5020:5020"
+      - "127.0.0.1:3001:3001"
     healthcheck:
       test:
         [
@@ -23,6 +27,7 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
+    init: true
     entrypoint: ["python", "hmi.py", "--web", "--modbus-host", "sim", "--modbus-port", "5020", "--web-port", "8090"]
     networks:
       - ot-lab
@@ -36,8 +41,16 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile.caldera
+    environment:
+      - SIM_HOST=sim
+      - FACT_SOURCE=plugins/modbus/data/sources/wildcat-dam-simulator-facts.yml
+      - FACT_TRAIT=modbus.server.ip
+    init: true
     networks:
       - ot-lab
+    depends_on:
+      sim:
+        condition: service_healthy
     ports:
       - "8888:8888"
       - "8443:8443"
@@ -52,10 +65,7 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile.agent
-    # linux/amd64: the modbus plugin's modbus_cli payload only ships an
-    # x86_64 glibc build. On arm64 Docker hosts this forces Rosetta/QEMU
-    # emulation with a real x86_64 root filesystem instead of a native
-    # arm64 one, which is missing /lib64/ld-linux-x86-64.so.2 entirely.
+    init: true
     platform: linux/amd64
     networks:
       - ot-lab
@@ -66,6 +76,28 @@ services:
       - CALDERA_SERVER=http://caldera:8888
       - AGENT_GROUP=red
 
+  capture:
+    image: lscr.io/linuxserver/wireshark:4.6.6-r0-ls328
+    profiles:
+      - capture
+    network_mode: "service:sim"
+    depends_on:
+      - sim
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    shm_size: "1gb"
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=Etc/UTC
+    volumes:
+      - wireshark-config:/config
+      - ./captures:/config/Desktop
+
 networks:
   ot-lab:
     driver: bridge
+
+volumes:
+  wireshark-config:

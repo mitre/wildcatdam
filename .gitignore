@@ -34,3 +34,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Wireshark captures
+docker/captures/*
+!docker/captures/.gitkeep

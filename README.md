@@ -41,6 +41,27 @@ pip install -r requirements.txt
 python3 dam_system.py 
 ```
 
+### Docker
+`docker/docker-compose.yml` runs the dam, the web HMI, Caldera, and an agent on
+a shared network:
+```bash
+docker compose -f docker/docker-compose.yml up --build -d
+```
+* **Caldera UI**: http://localhost:8888 (login: `admin` / `admin`)
+* **Web HMI**: http://localhost:8090
+* **Modbus**: `localhost:5020`
+
+Caldera starts with the Wildcat Dam fact source and adversaries loaded.
+
+### Packet Capture
+An optional Wireshark container shares the dam's network, so it sees the web
+HMI polling and the Modbus traffic from the Caldera agent:
+```bash
+docker compose -f docker/docker-compose.yml --profile capture up -d capture
+```
+Open https://127.0.0.1:3001 and start a capture on `eth0`. Saved captures land
+in `docker/captures/`.
+
 ## Usage
 
 Follow the steps below to interact with the Wildcat Dam control system using
