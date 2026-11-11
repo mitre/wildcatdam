@@ -22,7 +22,7 @@ training, empowering users without requiring physical ICS hardware.
   * Requires the tkinter package ([Installation - TKDocs](https://tkdocs.com/tutorial/install.html))
 * Should work on any OS (tested on Ubuntu 22.04 LTS and 24.04 LTS)
 * Caldera with the Modbus plugin to interact with the system (*optional but highly recommended*) 
-  * [Caldera installation instructions](https://github.com/mitre/caldera?tab=readme-ov-file#requirements)
+  * [Caldera installation instructions](https://github.com/apache/caldera?tab=readme-ov-file#requirements)
   * [Modbus plugin installation instructions](https://github.com/mitre/modbus?tab=readme-ov-file#installation)
 
 ### Installation
@@ -142,6 +142,6 @@ This project is licensed under the Apache-2.0 License - see the LICENSE.md file 
 
 ## Acknowledgments
 
-* [MITRE Caldera](https://github.com/mitre/caldera)
+* [Apache Caldera](https://github.com/apache/caldera)
 * [Caldera for OT](https://github.com/mitre/caldera-ot)
 * [Pymodbus](https://pymodbus.readthedocs.io/en/latest/)
