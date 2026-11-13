@@ -1,0 +1,11 @@
+---
+
+id: d09d5443-bb56-430a-b85b-13a0f8c71c80
+name: Wildcat Dam Modbus Manual Override
+description: Seize manual control of door 1 and force it open, then lower threshold 2 so door 2 opens outside its auto logic
+atomic_ordering:
+  - d80b9cd5-b1d8-482a-a745-71d74f9d0885  # Modbus - Read Coils (baseline)
+  - 056e6289-4cbf-417f-928a-d75125e4db4f  # Modbus - Write Single Coil (door_1 override enable active)
+  - 056e6289-4cbf-417f-928a-d75125e4db4f  # Modbus - Write Single Coil (door_1 forced open)
+  - d6991b6b-d3b2-4398-ad3f-d736ae09acf9  # Modbus - Write Single Register (threshold_2 low)
+  - bc8961a2-7534-4b2a-bbc3-2456f58243be  # Modbus - Read Holding Registers (verify)
