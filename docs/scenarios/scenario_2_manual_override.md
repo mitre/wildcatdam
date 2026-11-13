@@ -5,13 +5,13 @@
 | Field | Value |
 |---|---|
 | **Tactic** | Impair Process Control, Impact |
-| **Techniques** | [T0855 - Unauthorized Command Message](https://attack.mitre.org/techniques/T0855/), [T0836 - Modify Parameter](https://attack.mitre.org/techniques/T0836/), [T0831 - Manipulation of Control](https://attack.mitre.org/techniques/T0831/) |
+| **Techniques** | [T1692.001 - Unauthorized Message: Command Message](https://attack.mitre.org/techniques/T1692/001/), [T0836 - Modify Parameter](https://attack.mitre.org/techniques/T0836/), [T0831 - Manipulation of Control](https://attack.mitre.org/techniques/T0831/) |
 | **Adversary** | Wildcat Dam Modbus Manual Override (`docs/adversaries/modbus-manual-override.yml`) |
-| **Fact source** | Wildcat Dam Facts (`docs/sources/wildcat-dam-simulator-facts.yml`) |
+| **Fact source** | Wildcat Dam Manual Override Facts (`docs/sources/wildcat-dam-manual-override.yml`) |
 
 ## Description
 
-The adversary enables door 1's manual override and writes its position open, so door 1 no longer follows the automatic door logic. It then lowers door 2's threshold from 75 to 5 with a holding register write, so door 2 opens far below its normal level. The PLC accepts both writes from any Modbus client and acts on them on its next tick.
+The adversary writes door 1's position and override enable coils open in one Write Multiple Coils block, so door 1 no longer follows the automatic door logic and is held open. It then lowers door 2's threshold from 75 to 5 with a holding register write, so door 2 opens far below its normal level. The PLC accepts both writes from any Modbus client and acts on them on its next tick.
 
 ![Wildcat Dam HMI manual override state](../images/scenario-2-manual-override.png)
 
@@ -25,8 +25,8 @@ The adversary enables door 1's manual override and writes its position open, so 
 | `modbus.read_coil.count` | Number of coils to read | int | `6` |
 | `modbus.read_holding.start` | First holding register to read | int | `0` |
 | `modbus.read_holding.count` | Number of holding registers to read | int | `7` |
-| `modbus.write_coil.start` | Coil to write | int | `3` (door 1 override enable), `0` (door 1 position) |
-| `modbus.write_coil.value` | Value for a single coil write | string | `ON` |
+| `modbus.write_coil.start` | First coil to write | int | `0` (door 1 position) |
+| `modbus.write_coil.values` | Values for coils 0-3 | string | `ON,OFF,OFF,ON` |
 | `modbus.write_register.start` | Holding register to write | int | `5` (threshold 2) |
 | `modbus.write_register.value` | Value for a single register write | int | `5` |
 
@@ -34,9 +34,13 @@ The adversary enables door 1's manual override and writes its position open, so 
 
 | Control | Modbus Address | Value |
 |---|---|---|
-| `door_1.override_enable` | Coil `3` | `ON` |
 | `door_1.position` | Coil `0` | `ON` |
+| `door_2.position` | Coil `1` | `OFF` |
+| `door_3.position` | Coil `2` | `OFF` |
+| `door_1.override_enable` | Coil `3` | `ON` |
 | `thresholds.threshold_2` | Holding register `5` | `5` |
+
+The Write Multiple Coils block covers coils 0-3, so it writes door 2 and door 3's manual positions `OFF` as well. Both were already `OFF`, so only door 1 changes.
 
 ## Steps
 
@@ -45,16 +49,15 @@ Run the adversary with the fact source above, or add these abilities to an opera
 | # | Ability | ID | Facts |
 |---|---|---|---|
 | 1 | Modbus - Read Coils | `d80b9cd5-b1d8-482a-a745-71d74f9d0885` | baseline: `modbus.read_coil.start=0`, `modbus.read_coil.count=6` |
-| 2 | Modbus - Write Single Coil | `056e6289-4cbf-417f-928a-d75125e4db4f` | override: `modbus.write_coil.start=3`, `modbus.write_coil.value=ON` |
-| 3 | Modbus - Write Single Coil | `056e6289-4cbf-417f-928a-d75125e4db4f` | open: `modbus.write_coil.start=0`, `modbus.write_coil.value=ON` |
-| 4 | Modbus - Write Single Register | `d6991b6b-d3b2-4398-ad3f-d736ae09acf9` | threshold: `modbus.write_register.start=5`, `modbus.write_register.value=5` |
-| 5 | Modbus - Read Holding Registers | `bc8961a2-7534-4b2a-bbc3-2456f58243be` | verify: `modbus.read_holding.start=0`, `modbus.read_holding.count=7` |
+| 2 | Modbus - Write Multiple Coils | `fe321da2-e183-44a3-b423-b8cba9a8bda0` | seize: `modbus.write_coil.start=0`, `modbus.write_coil.values=ON,OFF,OFF,ON` |
+| 3 | Modbus - Write Single Register | `d6991b6b-d3b2-4398-ad3f-d736ae09acf9` | threshold: `modbus.write_register.start=5`, `modbus.write_register.value=5` |
+| 4 | Modbus - Read Holding Registers | `bc8961a2-7534-4b2a-bbc3-2456f58243be` | verify: `modbus.read_holding.start=0`, `modbus.read_holding.count=7` |
 
-The adversary runs Write Single Coil once for each `modbus.write_coil.start` fact in the source, so it writes `ON` to coils 3 and 0 in either order.
+Each trait in the fact source has one value, so every step runs exactly once. Write Multiple Coils sets door 1's position (coil 0) and override enable (coil 3) `ON` in a single request.
 
 ## Expected Observations
 
 - The baseline read returns coils `OFF,OFF,OFF,OFF,OFF,OFF`.
-- Every write returns "Write successful", and the PLC logs each one, for example `Client wrote coil 3 = ON`.
+- Both writes return "Write successful", and the PLC logs each one: `Client wrote coils 0-3 = ON,OFF,OFF,ON` and `Client wrote holding register 5 = 5`.
 - Holding registers read back `40,1,3,6,60,5,85`: register 5 (threshold 2) is now `5`, down from `75`.
 - The profile reads back only the holding registers, so check the doors in the HMI: the Threshold 2 line drops to `5`, Doors 1 and 2 show open, and the Door 1 buttons read Manual and Open. Door 1 is held open by the override, and door 2 stays open because the level is above the new threshold.

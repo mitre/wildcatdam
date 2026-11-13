@@ -1,0 +1,31 @@
+---
+
+id: 6463413c-9e35-41ae-a8d0-2f2f1240b2c1
+name: Wildcat Dam Reconnaissance Facts
+facts:
+
+# MODBUS CONNECTION FACTS
+
+- trait: modbus.server.ip # IP address of the dam controller
+  value: 127.0.0.1
+- trait: modbus.server.port # Modbus TCP port
+  value: 5020
+
+# MODBUS READ FACTS
+
+- trait: modbus.read_coil.start # First coil to read
+  value: 0
+- trait: modbus.read_coil.count # Number of coils to read
+  value: 6
+- trait: modbus.read_discrete.start # First discrete input to read
+  value: 0
+- trait: modbus.read_discrete.count # Number of discrete inputs to read
+  value: 4
+- trait: modbus.read_holding.start # First holding register to read
+  value: 0
+- trait: modbus.read_holding.count # Number of holding registers to read
+  value: 7
+- trait: modbus.read_input.start # First input register to read
+  value: 0
+- trait: modbus.read_input.count # Number of input registers to read
+  value: 3
