@@ -115,7 +115,7 @@ An optional Wireshark container shares the PLC's network, so it sees the HMI pol
 docker compose -f docker/docker-compose.yml --profile capture up -d capture
 ```
 
-Open https://127.0.0.1:3001 and start a capture on `eth0`. Saved captures land in `docker/captures/`.
+Open https://127.0.0.1:3001 and start a capture on `eth0`. Saved captures land in `docker/captures/`. If 3001 is taken, set `WIRESHARK_PORT` to another port.
 
 ## Modbus Map
 
@@ -161,11 +161,11 @@ Open https://127.0.0.1:3001 and start a capture on `eth0`. Saved captures land i
 
 ## Caldera OT Integration
 
-This repo ships a fact source and adversary profiles for [MITRE Caldera™ for OT](https://github.com/mitre/caldera-ot) and its [Modbus plugin](https://github.com/mitre/modbus). The Docker lab loads them for you. To use them with your own Caldera server, copy them into the plugin directories below, adjust the values for your network, and restart Caldera:
+This repo ships a fact source per scenario and adversary profiles for [MITRE Caldera™ for OT](https://github.com/mitre/caldera-ot) and its [Modbus plugin](https://github.com/mitre/modbus). Each adversary is paired with its own fact source, so every step runs once with one set of values. The Docker lab loads them for you. To use them with your own Caldera server, copy them into the plugin directories below, adjust the values for your network, and restart Caldera:
 
 | File | Destination |
 |---|---|
-| `docs/sources/wildcat-dam-simulator-facts.yml` | `plugins/modbus/data/sources/` |
+| `docs/sources/wildcat-dam-*.yml` | `plugins/modbus/data/sources/` |
 | `docs/adversaries/modbus-*.yml` | `plugins/modbus/data/adversaries/` |
 
 ### Scenarios

@@ -1,0 +1,34 @@
+---
+
+id: 0e699a8e-194c-47c5-867e-7c7ea9206b2b
+name: Wildcat Dam Manual Override Facts
+facts:
+
+# MODBUS CONNECTION FACTS
+
+- trait: modbus.server.ip # IP address of the dam controller
+  value: 127.0.0.1
+- trait: modbus.server.port # Modbus TCP port
+  value: 5020
+
+# MODBUS READ FACTS
+
+- trait: modbus.read_coil.start # First coil to read (baseline)
+  value: 0
+- trait: modbus.read_coil.count # Number of coils to read (baseline)
+  value: 6
+- trait: modbus.read_holding.start # First holding register to read (verify)
+  value: 0
+- trait: modbus.read_holding.count # Number of holding registers to read (verify)
+  value: 7
+
+# MODBUS WRITE FACTS
+
+- trait: modbus.write_coil.start # door_1 coils, write from coil 0
+  value: 0
+- trait: modbus.write_coil.values # coils 0-3: door_1 position ON, door_2/3 OFF, door_1 override ON
+  value: 'ON,OFF,OFF,ON'
+- trait: modbus.write_register.start # threshold_2 register
+  value: 5
+- trait: modbus.write_register.value # threshold_2 lowered to 5
+  value: 5
