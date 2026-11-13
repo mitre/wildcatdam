@@ -1,0 +1,106 @@
+name: wildcatdam
+
+services:
+  plc:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    init: true
+    networks:
+      - ot-lab
+    # 3001 is the capture sidecar's web UI: the sidecar shares this container's
+    # network namespace, so its port is published here.
+    ports:
+      - "127.0.0.1:5020:5020"
+      - "127.0.0.1:3001:3001"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import socket; s=socket.create_connection(('localhost',5020),2); s.close()",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  hmi:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    init: true
+    entrypoint: ["python", "-m", "simulator.hmi", "--web", "--host", "plc", "--port", "5020", "--web-port", "8090"]
+    networks:
+      - ot-lab
+    ports:
+      - "127.0.0.1:8090:8090"
+    depends_on:
+      plc:
+        condition: service_healthy
+
+  caldera:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.caldera
+    init: true
+    environment:
+      - SIM_HOST=plc
+      - FACT_SOURCE=plugins/modbus/data/sources/wildcat-dam-simulator-facts.yml
+      - FACT_TRAIT=modbus.server.ip
+    depends_on:
+      plc:
+        condition: service_healthy
+    networks:
+      - ot-lab
+    ports:
+      - "127.0.0.1:8888:8888"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8888"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+
+  agent:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.agent
+    init: true
+    # The plugins' Linux payloads are amd64 glibc binaries with no arm64
+    # build, so the whole container runs as amd64 (emulated on arm64 hosts).
+    platform: linux/amd64
+    networks:
+      - ot-lab
+    depends_on:
+      caldera:
+        condition: service_healthy
+    environment:
+      - CALDERA_SERVER=http://caldera:8888
+      - AGENT_GROUP=red
+
+  capture:
+    image: lscr.io/linuxserver/wireshark:4.6.6-r0-ls328
+    profiles:
+      - capture
+    network_mode: "service:plc"
+    depends_on:
+      - plc
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    shm_size: "1gb"
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=Etc/UTC
+    volumes:
+      - wireshark-config:/config
+      - ./captures:/config/Desktop
+
+networks:
+  ot-lab:
+    driver: bridge
+
+volumes:
+  wireshark-config:
