@@ -7,7 +7,7 @@
 | **Tactic** | Collection, Impair Process Control |
 | **Techniques** | [T0861 - Point & Tag Identification](https://attack.mitre.org/techniques/T0861/), [T0806 - Brute Force I/O](https://attack.mitre.org/techniques/T0806/) |
 | **Adversary** | Wildcat Dam Modbus Chaos (`docs/adversaries/modbus-chaos.yml`) |
-| **Fact source** | Wildcat Dam Facts (`docs/sources/wildcat-dam-simulator-facts.yml`) |
+| **Fact source** | Wildcat Dam Chaos Facts (`docs/sources/wildcat-dam-chaos.yml`) |
 
 ## Description
 

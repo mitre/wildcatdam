@@ -7,7 +7,7 @@
 | **Tactic** | Collection |
 | **Techniques** | [T0861 - Point & Tag Identification](https://attack.mitre.org/techniques/T0861/) |
 | **Adversary** | Wildcat Dam Modbus Reconnaissance (`docs/adversaries/modbus-reconnaissance.yml`) |
-| **Fact source** | Wildcat Dam Facts (`docs/sources/wildcat-dam-simulator-facts.yml`) |
+| **Fact source** | Wildcat Dam Reconnaissance Facts (`docs/sources/wildcat-dam-reconnaissance.yml`) |
 
 ## Description
 
