@@ -10,6 +10,7 @@ import logging
 import threading
 import time
 import tkinter as tk
+from collections import deque
 
 import matplotlib.pyplot as plt
 import yaml
@@ -25,6 +26,7 @@ log.setLevel(logging.INFO)
 
 # --- Constant Vars ---
 config = yaml.safe_load(open("config.yaml"))
+HISTORY = 240
 
 
 # --- Load Config (Now MODBUS) ---
@@ -125,7 +127,9 @@ def start_server():
 
 
 # --- State Tracking for Logic ---
-water_levels, cumulative_release, door_1_status, door_2_status, door_3_status = [], [], [], [], []
+water_levels, cumulative_release, door_1_status, door_2_status, door_3_status = (
+    deque(maxlen=HISTORY) for _ in range(5)
+)
 cumulative_water_released = 0
 
 # Maintain previous door state globally or within a class/module
