@@ -1,0 +1,10 @@
+---
+
+id: 41a83938-d1bd-4562-900c-34c811f9ba8c
+name: Wildcat Dam Modbus Chaos
+description: Fuzz coils and holding registers to corrupt door and control state for a denial-of-view effect
+atomic_ordering:
+  - d80b9cd5-b1d8-482a-a745-71d74f9d0885  # Modbus - Read Coils (baseline)
+  - bc8961a2-7534-4b2a-bbc3-2456f58243be  # Modbus - Read Holding Registers (baseline)
+  - 40f78a8f-2aaa-4b1b-872f-7c6b0f1ddf3e  # Modbus - Fuzz Coils
+  - 2a6e8c8e-f350-11ed-9156-23436b8f0e58  # Modbus - Fuzz Registers

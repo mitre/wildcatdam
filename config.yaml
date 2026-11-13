@@ -1,8 +1,6 @@
 server:
-  comm: tcp
   host: "0.0.0.0"
   port: 5020
-  framer: socket
   identity:
     VendorName: "CalderaSimDevice"
     ProductCode: "MODBUS-SIM"
@@ -17,28 +15,30 @@ device:
     di size: 10
     hr size: 10
     ir size: 10
-    shared blocks: true
-    type exception: false
   coils:  # Read/Write binary
-    - { addr: 1, value: 0 }  # door_1.position (manual value)
-    - { addr: 2, value: 0 }  # door_2.position (manual value)
-    - { addr: 3, value: 0 }  # door_3.position (manual value)
+    - { addr: 0, value: 0 }  # door_1.position (manual value)
+    - { addr: 1, value: 0 }  # door_2.position (manual value)
+    - { addr: 2, value: 0 }  # door_3.position (manual value)
 
-    - { addr: 4, value: 0 }  # door_1.override_enable (0 = auto, 1 = manual)
-    - { addr: 5, value: 0 }  # door_2.override_enable
-    - { addr: 6, value: 0 }  # door_3.override_enable
+    - { addr: 3, value: 0 }  # door_1.override_enable (0 = auto, 1 = manual)
+    - { addr: 4, value: 0 }  # door_2.override_enable
+    - { addr: 5, value: 0 }  # door_3.override_enable
   discrete_inputs: # Read only binary
-    - { addr: 1, value: 0 }  # Check if any water is being let out
+    - { addr: 0, value: 0 }  # any_door_open (1 = water is being let out)
+    - { addr: 1, value: 0 }  # door_1.state (1 = open)
+    - { addr: 2, value: 0 }  # door_2.state
+    - { addr: 3, value: 0 }  # door_3.state
   holding_registers: # Read/Write
-    - { addr: 1, value: 40 }  # close_level for door 1 (0-100)
-    
-    - { addr: 2, value: 1 }   # reduction_rates.door_1 (0-10)
-    - { addr: 3, value: 3 }   # reduction_rates.door_2 (0-10)
-    - { addr: 4, value: 6 }   # reduction_rates.door_3 (0-10)
+    - { addr: 0, value: 40 }  # close_level for door 1 (0-100)
 
-    - { addr: 5, value: 60 }  # thresholds.threshold_1 (0-100)
-    - { addr: 6, value: 75 }  # thresholds.threshold_2 (0-100)
-    - { addr: 7, value: 85 }  # thresholds.threshold_3 (0-100)
+    - { addr: 1, value: 1 }   # reduction_rates.door_1 (0-10)
+    - { addr: 2, value: 3 }   # reduction_rates.door_2 (0-10)
+    - { addr: 3, value: 6 }   # reduction_rates.door_3 (0-10)
+
+    - { addr: 4, value: 60 }  # thresholds.threshold_1 (0-100)
+    - { addr: 5, value: 75 }  # thresholds.threshold_2 (0-100)
+    - { addr: 6, value: 85 }  # thresholds.threshold_3 (0-100)
   input_registers: # Read only
-    - { addr: 1, value: 10 }  # Water Level (0-100)
-    - { addr: 2, value: 3 }  # Surge [flow of water into the dam] (1-5)
+    - { addr: 0, value: 10 }  # water_level (0-100)
+    - { addr: 1, value: 3 }   # surge_rate [flow of water into the dam] (1-5)
+    - { addr: 2, value: 0 }   # water_released, running total (wraps at 65536)

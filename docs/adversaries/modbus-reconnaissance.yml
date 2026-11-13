@@ -1,0 +1,11 @@
+---
+
+id: 934c9a01-0ed3-4b30-b07d-ca04270190c4
+name: Wildcat Dam Modbus Reconnaissance
+description: Read-only enumeration of the dam controller's coils, discrete inputs, and registers (no control commands)
+atomic_ordering:
+  - 7f43fa44-c2aa-4bb6-ba4b-2c1e58df3b51  # Modbus - Scan Device
+  - d80b9cd5-b1d8-482a-a745-71d74f9d0885  # Modbus - Read Coils
+  - 001e21ea-61b5-4b78-b79e-9d5687d819bd  # Modbus - Read Discrete Inputs
+  - bc8961a2-7534-4b2a-bbc3-2456f58243be  # Modbus - Read Holding Registers
+  - 3946b6da-c570-47cd-b63f-c13875297cb4  # Modbus - Read Input Registers

@@ -1,0 +1,50 @@
+FROM python:3.10-slim
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends git curl gcc g++ nodejs npm golang-go && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /opt
+
+# Clone Caldera with submodules (manx and magma Vue UI come in via --recurse-submodules)
+RUN git clone --depth 1 --branch 5.3.0 --recurse-submodules --shallow-submodules \
+        https://github.com/apache/caldera.git && \
+    git clone --recursive https://github.com/mitre/caldera-ot.git /tmp/caldera-ot && \
+    git -C /tmp/caldera-ot checkout -q e0e2715d199f83e109fb38ea01a57e1c9db752ef && \
+    git -C /tmp/caldera-ot submodule update --init --recursive
+
+# Copy OT plugin directories into Caldera's plugins folder
+RUN for plugin in /tmp/caldera-ot/*/; do \
+        name=$(basename "$plugin"); \
+        if [ -d "$plugin" ] && [ "$name" != ".git" ]; then \
+            cp -r "$plugin" /opt/caldera/plugins/"$name"; \
+        fi; \
+    done && \
+    rm -rf /tmp/caldera-ot
+
+# Caldera loads every subdirectory of plugins/ at startup and exits(0) if any
+# lacks a hook.py (happens with uninitialised git submodules). Remove them.
+RUN find /opt/caldera/plugins -mindepth 1 -maxdepth 1 -type d | while read d; do \
+        [ -f "$d/hook.py" ] || rm -rf "$d"; \
+    done
+
+WORKDIR /opt/caldera
+
+# Build the magma Vue UI (required by rest_api.py to serve /assets)
+RUN cd plugins/magma && npm install --legacy-peer-deps && npm run build
+
+# Install Caldera dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY docker/caldera-setup.py /tmp/caldera-setup.py
+RUN python /tmp/caldera-setup.py modbus
+
+COPY docs/sources/*.yml plugins/modbus/data/sources/
+COPY docs/adversaries/*.yml plugins/modbus/data/adversaries/
+
+COPY docker/caldera-entrypoint.sh /caldera-entrypoint.sh
+RUN chmod +x /caldera-entrypoint.sh
+
+EXPOSE 8888
+
+ENTRYPOINT ["/caldera-entrypoint.sh"]
