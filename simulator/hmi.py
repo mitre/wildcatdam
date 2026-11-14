@@ -10,9 +10,11 @@ import time
 from collections import deque
 
 import matplotlib
+import yaml
 from pymodbus.client import ModbusTcpClient
 
 from simulator import SIM
+from simulator.config import DEFAULT_CONFIG, load_addresses, load_config
 
 logger = logging.getLogger(__name__)
 
@@ -45,8 +47,46 @@ def checked(response):
     return response
 
 
+def read_points(client, addresses):
+    """
+    Read every point the HMI shows, one request per table.
+
+    Args:
+        client (ModbusTcpClient): Connected client.
+        addresses (dict): {table: {name: address}} from load_addresses().
+
+    Returns:
+        dict: {name: value} for every point.
+    """
+    reads = {
+        "coils": lambda start, count: checked(client.read_coils(start, count=count)).bits,
+        "discrete_inputs": lambda start, count: checked(client.read_discrete_inputs(start, count=count)).bits,
+        "holding_registers": lambda start, count: checked(client.read_holding_registers(start, count=count)).registers,
+        "input_registers": lambda start, count: checked(client.read_input_registers(start, count=count)).registers,
+    }
+    values = {}
+    for table, names in addresses.items():
+        start = min(names.values())
+        block = reads[table](start, max(names.values()) - start + 1)
+        values.update({name: block[addr - start] for name, addr in names.items()})
+    return values
+
+
+def write_queued_coils(client, addresses):
+    """Write each queued (point name, value) button press to its coil."""
+    while not cmd_q.empty():
+        name, value = cmd_q.get()
+        addr = addresses["coils"][name]
+        result = client.write_coil(addr, value)
+        text = "ON" if value else "OFF"
+        if result.isError():
+            logger.warning("PLC rejected coil %s (%s) = %s: %s", addr, name, text, result)
+        else:
+            logger.info("Wrote coil %s (%s) = %s", addr, name, text)
+
+
 # --- Modbus Poller ---
-def modbus_poller(host, port, state, lock):
+def modbus_poller(host, port, state, lock, addresses):
     """Poll the dam over Modbus, update shared state, and drain queued coil writes."""
     client = ModbusTcpClient(host=host, port=port)
     failing = False
@@ -56,25 +96,16 @@ def modbus_poller(host, port, state, lock):
                 client.connect()
 
             # Drain button writes before reading back the new state
-            while not cmd_q.empty():
-                addr, value = cmd_q.get()
-                result = client.write_coil(addr, value)  # Coils 0-2 position, 3-5 override
-                text = "ON" if value else "OFF"
-                if result.isError():
-                    logger.warning("PLC rejected coil %s = %s: %s", addr, text, result)
-                else:
-                    logger.info("Wrote coil %s = %s", addr, text)
+            write_queued_coils(client, addresses)
 
-            water_level, _, released = checked(client.read_input_registers(0, count=3)).registers  # Input registers 0-2
-            hr = checked(client.read_holding_registers(0, count=7)).registers  # Holding registers 0-6
-            coils = checked(client.read_coils(0, count=6)).bits  # Coils 0-2 positions, 3-5 overrides
-            doors = checked(client.read_discrete_inputs(1, count=3)).bits  # Discrete inputs 1-3 door states
-
-            d1, d2, d3 = int(doors[0]), int(doors[1]), int(doors[2])
+            point = read_points(client, addresses)
+            water_level, released = point["water_level"], point["water_released"]
+            d1, d2, d3 = (int(point[f"door_{n}.state"]) for n in (1, 2, 3))
 
             with lock:
-                state.close_level = hr[0]
-                state.threshold_1, state.threshold_2, state.threshold_3 = hr[4], hr[5], hr[6]
+                state.close_level = point["close_level"]
+                state.threshold_1, state.threshold_2, state.threshold_3 = (
+                    point[f"thresholds.threshold_{n}"] for n in (1, 2, 3))
                 if state.last_released is not None:
                     state.cumulative_water_released += (released - state.last_released) % 65536
                 state.last_released = released
@@ -83,8 +114,8 @@ def modbus_poller(host, port, state, lock):
                 state.door_2_status.append(d2)
                 state.door_3_status.append(d3)
                 state.cumulative_release.append(state.cumulative_water_released)
-                state.door_overrides = [int(coils[3]), int(coils[4]), int(coils[5])]
-                state.door_positions = [int(coils[0]), int(coils[1]), int(coils[2])]
+                state.door_overrides = [int(point[f"door_{n}.override_enable"]) for n in (1, 2, 3)]
+                state.door_positions = [int(point[f"door_{n}.position"]) for n in (1, 2, 3)]
                 if not state.connected:
                     logger.info("Connected to PLC at %s:%s, water level %s", host, port, water_level)
                 state.connected = True
@@ -105,17 +136,17 @@ def modbus_poller(host, port, state, lock):
 
 # --- Coil Writes (button control path) ---
 def toggle_override(state, door):
-    """Flip the manual override enable for a door (coils 3-5)."""
+    """Flip the manual override enable for a door (0-2)."""
     with lock:
         current = state.door_overrides[door]
-    cmd_q.put((3 + door, not current))
+    cmd_q.put((f"door_{door + 1}.override_enable", not current))
 
 
 def toggle_position(state, door):
-    """Flip the manual position for a door (coils 0-2)."""
+    """Flip the manual position for a door (0-2)."""
     with lock:
         current = state.door_positions[door]
-    cmd_q.put((door, not current))
+    cmd_q.put((f"door_{door + 1}.position", not current))
 
 
 def main(argv=None):
@@ -126,6 +157,10 @@ def main(argv=None):
     )
     parser.add_argument("--host", default="127.0.0.1", metavar="HOST", help="PLC to poll (default: 127.0.0.1)")
     parser.add_argument("--port", type=int, default=port, metavar="PORT", help=f"PLC port (default: {port})")
+    parser.add_argument(
+        "--config", default=DEFAULT_CONFIG, metavar="PATH",
+        help="configuration file with the PLC's point addresses (default: config.yaml in the repo root)",
+    )
     parser.add_argument("--web", action="store_true", help="serve the HMI as a web page instead of a desktop window")
     parser.add_argument("--web-port", type=int, default=8090, metavar="PORT", help="web HMI port (default: 8090)")
     parser.add_argument("--debug", action="store_true", help="debug logging")
@@ -137,6 +172,12 @@ def main(argv=None):
     )
     logging.getLogger("pymodbus").setLevel(logging.DEBUG if args.debug else logging.CRITICAL)
     logging.getLogger("tornado.access").setLevel(logging.WARNING)
+
+    try:
+        addresses = load_addresses(load_config(args.config))
+    except (OSError, yaml.YAMLError, KeyError, TypeError, AttributeError, ValueError) as e:
+        logger.error("Cannot load %s: %s", args.config, e)
+        return 1
 
     if args.web:
         matplotlib.use("WebAgg")
@@ -166,7 +207,7 @@ def main(argv=None):
     state = State()
 
     logger.info("Polling PLC at %s:%s", args.host, args.port)
-    threading.Thread(target=modbus_poller, args=(args.host, args.port, state, lock), daemon=True).start()
+    threading.Thread(target=modbus_poller, args=(args.host, args.port, state, lock, addresses), daemon=True).start()
     if args.web:
         logger.info("Web HMI at http://0.0.0.0:%s", args.web_port)
         signal.signal(signal.SIGTERM, signal.default_int_handler)

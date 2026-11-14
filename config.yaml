@@ -15,30 +15,32 @@ device:
     di size: 10
     hr size: 10
     ir size: 10
+  # The PLC and HMI find each point by its name, so a point can move to another
+  # address here. Every name below must be present once; extra points need no name.
   coils:  # Read/Write binary
-    - { addr: 0, value: 0 }  # door_1.position (manual value)
-    - { addr: 1, value: 0 }  # door_2.position (manual value)
-    - { addr: 2, value: 0 }  # door_3.position (manual value)
+    - { name: door_1.position, addr: 0, value: 0 }  # manual value
+    - { name: door_2.position, addr: 1, value: 0 }
+    - { name: door_3.position, addr: 2, value: 0 }
 
-    - { addr: 3, value: 0 }  # door_1.override_enable (0 = auto, 1 = manual)
-    - { addr: 4, value: 0 }  # door_2.override_enable
-    - { addr: 5, value: 0 }  # door_3.override_enable
+    - { name: door_1.override_enable, addr: 3, value: 0 }  # 0 = auto, 1 = manual
+    - { name: door_2.override_enable, addr: 4, value: 0 }
+    - { name: door_3.override_enable, addr: 5, value: 0 }
   discrete_inputs: # Read only binary
-    - { addr: 0, value: 0 }  # any_door_open (1 = water is being let out)
-    - { addr: 1, value: 0 }  # door_1.state (1 = open)
-    - { addr: 2, value: 0 }  # door_2.state
-    - { addr: 3, value: 0 }  # door_3.state
+    - { name: any_door_open, addr: 0, value: 0 }  # 1 = water is being let out
+    - { name: door_1.state, addr: 1, value: 0 }   # 1 = open
+    - { name: door_2.state, addr: 2, value: 0 }
+    - { name: door_3.state, addr: 3, value: 0 }
   holding_registers: # Read/Write
-    - { addr: 0, value: 40 }  # close_level for door 1 (0-100)
+    - { name: close_level, addr: 0, value: 40 }  # close level for door 1 (0-100)
 
-    - { addr: 1, value: 1 }   # reduction_rates.door_1 (0-10)
-    - { addr: 2, value: 3 }   # reduction_rates.door_2 (0-10)
-    - { addr: 3, value: 6 }   # reduction_rates.door_3 (0-10)
+    - { name: reduction_rates.door_1, addr: 1, value: 1 }  # 0-10
+    - { name: reduction_rates.door_2, addr: 2, value: 3 }  # 0-10
+    - { name: reduction_rates.door_3, addr: 3, value: 6 }  # 0-10
 
-    - { addr: 4, value: 60 }  # thresholds.threshold_1 (0-100)
-    - { addr: 5, value: 75 }  # thresholds.threshold_2 (0-100)
-    - { addr: 6, value: 85 }  # thresholds.threshold_3 (0-100)
+    - { name: thresholds.threshold_1, addr: 4, value: 60 }  # 0-100
+    - { name: thresholds.threshold_2, addr: 5, value: 75 }  # 0-100
+    - { name: thresholds.threshold_3, addr: 6, value: 85 }  # 0-100
   input_registers: # Read only
-    - { addr: 0, value: 10 }  # water_level (0-100)
-    - { addr: 1, value: 3 }   # surge_rate [flow of water into the dam] (1-5)
-    - { addr: 2, value: 0 }   # water_released, running total (wraps at 65536)
+    - { name: water_level, addr: 0, value: 10 }     # 0-100
+    - { name: surge_rate, addr: 1, value: 3 }       # flow of water into the dam (1-5)
+    - { name: water_released, addr: 2, value: 0 }   # running total (wraps at 65536)

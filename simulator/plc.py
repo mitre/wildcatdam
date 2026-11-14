@@ -14,7 +14,7 @@ from pymodbus import ModbusDeviceIdentification
 from pymodbus.datastore import ModbusDeviceContext, ModbusSequentialDataBlock, ModbusServerContext
 from pymodbus.server import ModbusTcpServer
 
-from simulator.config import DEFAULT_CONFIG, load_config
+from simulator.config import DEFAULT_CONFIG, load_addresses, load_config
 from simulator.sim import DamState, dam_step
 
 logger = logging.getLogger(__name__)
@@ -23,6 +23,7 @@ TICK_SECONDS = 1
 HISTORY = 240
 
 COILS, DISCRETE_INPUTS, HOLDING_REGISTERS, INPUT_REGISTERS = 1, 2, 3, 4
+DOORS = ("door_1", "door_2", "door_3")
 WRITES = {5: "coil", 15: "coils", 6: "holding register", 16: "holding registers"}
 
 
@@ -57,49 +58,73 @@ def build_identity(config):
     return identity
 
 
+class Points:
+    """Reads and writes the PLC's datastore by point name, at the addresses from config.yaml."""
+
+    TABLES = {
+        "coils": COILS,
+        "discrete_inputs": DISCRETE_INPUTS,
+        "holding_registers": HOLDING_REGISTERS,
+        "input_registers": INPUT_REGISTERS,
+    }
+
+    def __init__(self, device, addresses):
+        self.device = device
+        self.where = {
+            name: (self.TABLES[table], addr) for table, names in addresses.items() for name, addr in names.items()
+        }
+
+    def get(self, *names):
+        values = [self.device.getValues(*self.where[name], count=1)[0] for name in names]
+        return values[0] if len(values) == 1 else values
+
+    def set(self, name, value):
+        self.device.setValues(*self.where[name], [value])
+
+
 # --- Load Config (Now MODBUS) ---
-def fetch_modbus_config(device, sim):
+def fetch_modbus_config(points, sim):
     """
     Load the close level, thresholds, and reduction rates from the holding registers.
 
     Args:
-        device (ModbusDeviceContext): The PLC's datastore.
+        points (Points): The PLC's datastore, by point name.
         sim (DamState): Simulation state to update.
     """
-    sim.close_level, rate_1, rate_2, rate_3, sim.threshold_1, sim.threshold_2, sim.threshold_3 = device.getValues(
-        HOLDING_REGISTERS, 0, count=7
+    sim.close_level = points.get("close_level")
+    sim.threshold_1, sim.threshold_2, sim.threshold_3 = points.get(
+        "thresholds.threshold_1", "thresholds.threshold_2", "thresholds.threshold_3"
     )
-    sim.reduction_rates = {"door_1": rate_1, "door_2": rate_2, "door_3": rate_3}
+    sim.reduction_rates = {door: points.get(f"reduction_rates.{door}") for door in DOORS}
 
 
-def control_doors(device, sim):
+def control_doors(points, sim):
     """
     Run one step of the door logic from the override and manual-position coils.
 
-    Publishes the door states in discrete inputs 0-3 and the released water
-    total in input register 2.
+    Publishes the door states and the released water total.
 
     Args:
-        device (ModbusDeviceContext): The PLC's datastore.
+        points (Points): The PLC's datastore, by point name.
         sim (DamState): Simulation state to update.
     """
-    coils = device.getValues(COILS, 0, count=6)  # Coils 0-2 manual positions, 3-5 override enables
-    sim.manual = tuple(int(bit) for bit in coils[0:3])
-    sim.overrides = tuple(int(bit) for bit in coils[3:6])
+    sim.manual = tuple(int(points.get(f"{door}.position")) for door in DOORS)
+    sim.overrides = tuple(int(points.get(f"{door}.override_enable")) for door in DOORS)
 
     dam_step(sim)
-    d1, d2, d3 = sim.doors
 
-    device.setValues(DISCRETE_INPUTS, 0, [int(any(sim.doors)), d1, d2, d3])
-    device.setValues(INPUT_REGISTERS, 2, [int(sim.cumulative_water_released) % 65536])
+    points.set("any_door_open", int(any(sim.doors)))
+    for door, state in zip(DOORS, sim.doors):
+        points.set(f"{door}.state", state)
+    points.set("water_released", int(sim.cumulative_water_released) % 65536)
 
 
-def tick(device, sim):
+def tick(points, sim):
     """Advance the dam by one tick: read the inputs, run the model, publish the results."""
-    sim.water_level, sim.surge_rate = device.getValues(INPUT_REGISTERS, 0, count=2)
-    fetch_modbus_config(device, sim)
-    control_doors(device, sim)
-    device.setValues(INPUT_REGISTERS, 0, [int(sim.water_level)])
+    sim.water_level, sim.surge_rate = points.get("water_level", "surge_rate")
+    fetch_modbus_config(points, sim)
+    control_doors(points, sim)
+    points.set("water_level", int(sim.water_level))
 
 
 class History:
@@ -154,7 +179,7 @@ def log_connection(connected):
 
 
 # --- Start MODBUS Server ---
-async def serve(device, identity, host, port, sim, history=None, started=None):
+async def serve(points, identity, host, port, sim, history=None, started=None):
     """
     Serve the datastore over Modbus/TCP and run the dam model once a second.
 
@@ -162,10 +187,10 @@ async def serve(device, identity, host, port, sim, history=None, started=None):
         int: 1 if the server cannot listen. Otherwise runs until cancelled.
     """
     server = ModbusTcpServer(
-        ModbusServerContext(devices=device, single=True),
+        ModbusServerContext(devices=points.device, single=True),
         identity=identity,
         address=(host, port),
-        trace_pdu=functools.partial(log_request, device),
+        trace_pdu=functools.partial(log_request, points.device),
         trace_connect=log_connection,
     )
     try:
@@ -180,7 +205,7 @@ async def serve(device, identity, host, port, sim, history=None, started=None):
     try:
         while True:
             try:
-                tick(device, sim)
+                tick(points, sim)
                 if history is not None:
                     history.record(sim)
             except Exception as e:
@@ -190,7 +215,7 @@ async def serve(device, identity, host, port, sim, history=None, started=None):
         await server.shutdown()
 
 
-def run_gui(device, identity, host, port, sim):
+def run_gui(points, identity, host, port, sim):
     """Serve from a background thread and show the PLC's graphs in a Tk window."""
     try:
         import tkinter
@@ -211,7 +236,7 @@ def run_gui(device, identity, host, port, sim):
     result = {}
 
     def run():
-        result["code"] = asyncio.run(serve(device, identity, host, port, sim, history, started))
+        result["code"] = asyncio.run(serve(points, identity, host, port, sim, history, started))
         started.set()
 
     threading.Thread(target=run, daemon=True).start()
@@ -257,9 +282,10 @@ def main(argv=None):
         config = load_config(args.config)
         host = args.host or config["server"]["host"]
         port = args.port or config["server"]["port"]
-        device = build_datastore(config)
+        addresses = load_addresses(config)  # first, so a bad address gets its own message
+        points = Points(build_datastore(config), addresses)
         identity = build_identity(config)
-    except (OSError, yaml.YAMLError, KeyError, IndexError, TypeError, AttributeError) as e:
+    except (OSError, yaml.YAMLError, KeyError, IndexError, TypeError, AttributeError, ValueError) as e:
         logger.error("Cannot load %s: %s", args.config, e)
         return 1
 
@@ -267,9 +293,9 @@ def main(argv=None):
     signal.signal(signal.SIGTERM, signal.default_int_handler)
     try:
         if args.gui:
-            code = run_gui(device, identity, host, port, sim)
+            code = run_gui(points, identity, host, port, sim)
         else:
-            code = asyncio.run(serve(device, identity, host, port, sim))
+            code = asyncio.run(serve(points, identity, host, port, sim))
     except KeyboardInterrupt:
         code = 0
     if code == 0:
