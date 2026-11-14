@@ -81,12 +81,13 @@ PLC (`simulator.plc`):
 | `--gui` | off | Also show the PLC's graphs in a desktop window (needs Tkinter) |
 | `--debug` | off | Debug logging |
 
-The `--host` and `--port` defaults come from `server.host` and `server.port` in `config.yaml`, which also sets the device identity and the starting register values.
+The `--host` and `--port` defaults come from `server.host` and `server.port` in `config.yaml`, which also sets the device identity, the starting register values, and the address of each point. The PLC and HMI find each point by its name, so a point can be moved to another address in `config.yaml`; give the HMI the same file. The fact sources in `docs/sources/` and the scenario pages in `docs/scenarios/` use the default addresses, so update them to match; the Manual Override scenario writes door 1's position and override coils in one request and expects them at 0 and 3.
 
 HMI (`simulator.hmi`):
 
 | Flag | Default | Description |
 |---|---|---|
+| `--config PATH` | `config.yaml` | Configuration file with the PLC's point addresses |
 | `--host HOST` | `127.0.0.1` | PLC to poll |
 | `--port PORT` | `5020` | PLC port |
 | `--web` | off | Serve the HMI as a web page instead of a desktop window |
@@ -118,6 +119,8 @@ docker compose -f docker/docker-compose.yml --profile capture up -d capture
 Open https://127.0.0.1:3001 and start a capture on `eth0`. Saved captures land in `docker/captures/`. If 3001 is taken, set `WIRESHARK_PORT` to another port.
 
 ## Modbus Map
+
+These are the default addresses from `config.yaml`. The fact sources and scenario docs use them.
 
 ### Coils (Read/Write)
 
